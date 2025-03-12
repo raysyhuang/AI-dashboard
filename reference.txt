@@ -14,9 +14,9 @@ http://test.ihemodialysis.com
 https://dialysis-game-b7156934a697.herokuapp.com
 
 for ikuai
-username=="dtuser"
-password=="Dtuse1r"
+username="dtuser"
+password="Dtuse1r"
 
 for ihemodialysis
-username=="suntop_ray"
-password=="123456"
+username="suntop_ray"
+password="123456"

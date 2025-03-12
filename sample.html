@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>赵XX - 患者健康数据仪表盘</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .patient-info {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .patient-data {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .patient-id {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        table, th, td {
+            border: 1px solid #eee;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--light);
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-normal {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-high {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-low {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .summary {
+            background-color: #e9f2fb;
+            padding: 15px;
+            border-left: 4px solid var(--primary);
+            margin-top: 15px;
+            border-radius: 4px;
+        }
+
+        .summary h4 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .summary ul {
+            padding-left: 20px;
+        }
+
+        .summary li {
+            margin-bottom: 8px;
+        }
+
+        .text-danger {
+            color: var(--danger);
+        }
+
+        .text-success {
+            color: var(--success);
+        }
+
+        .text-warning {
+            color: var(--warning);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="patient-info">
+                <div class="patient-data">
+                    <h1>赵XX - 患者健康数据</h1>
+                    <p class="patient-id">患者编号：PAT9196081141074nUxH</p>
+                </div>
+                <div class="patient-data">
+                    <p><strong>年龄：</strong> 57岁</p>
+                    <p><strong>性别：</strong> 女</p>
+                    <p><strong>干体重：</strong> 50.0 kg</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <!-- 透析效果卡片 -->
+            <div class="card">
+                <h3>透析效果</h3>
+                <div class="chart-container">
+                    <canvas id="dialysisChart"></canvas>
+                </div>
+                <table>
+                    <tr>
+                        <th>指标</th>
+                        <th>结果</th>
+                        <th>参考范围</th>
+                        <th>状态</th>
+                    </tr>
+                    <tr>
+                        <td>透析前BUN</td>
+                        <td>28.7 mmol/L</td>
+                        <td>1.70-8.30 mmol/L</td>
+                        <td><span class="status status-high">偏高</span></td>
+                    </tr>
+                    <tr>
+                        <td>透析后BUN</td>
+                        <td>6.7 mmol/L</td>
+                        <td>1.70-8.30 mmol/L</td>
+                        <td><span class="status status-normal">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td>KT/V</td>
+                        <td>1.77</td>
+                        <td>≥1.2</td>
+                        <td><span class="status status-normal">良好</span></td>
+                    </tr>
+                    <tr>
+                        <td>URR</td>
+                        <td>76.66%</td>
+                        <td>≥65%</td>
+                        <td><span class="status status-normal">良好</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 血压血流量卡片 -->
+            <div class="card">
+                <h3>血压与血流量</h3>
+                <div class="chart-container">
+                    <canvas id="bpChart"></canvas>
+                </div>
+                <table>
+                    <tr>
+                        <th>指标</th>
+                        <th>结果</th>
+                        <th>状态</th>
+                    </tr>
+                    <tr>
+                        <td>舒张压</td>
+                        <td>104 mmHg</td>
+                        <td><span class="status status-normal">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td>收缩压</td>
+                        <td>163 mmHg</td>
+                        <td><span class="status status-high">偏高</span></td>
+                    </tr>
+                    <tr>
+                        <td>血流量</td>
+                        <td>220 ml/min</td>
+                        <td><span class="status status-normal">适中</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 肾功能指标卡片 -->
+            <div class="card">
+                <h3>肾功能指标</h3>
+                <div class="chart-container">
+                    <canvas id="kidneyChart"></canvas>
+                </div>
+                <table>
+                    <tr>
+                        <th>指标</th>
+                        <th>结果</th>
+                        <th>参考范围</th>
+                        <th>状态</th>
+                    </tr>
+                    <tr>
+                        <td>肌酐</td>
+                        <td>233.22 umol/L</td>
+                        <td>&lt;80 umol/L</td>
+                        <td><span class="status status-high">偏高</span></td>
+                    </tr>
+                    <tr>
+                        <td>尿酸</td>
+                        <td>396.72 umol/L</td>
+                        <td>&lt;340 umol/L</td>
+                        <td><span class="status status-high">偏高</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 电解质卡片 -->
+            <div class="card">
+                <h3>电解质水平</h3>
+                <div class="chart-container">
+                    <canvas id="electrolyteChart"></canvas>
+                </div>
+                <table>
+                    <tr>
+                        <th>指标</th>
+                        <th>结果</th>
+                        <th>状态</th>
+                    </tr>
+                    <tr>
+                        <td>钠</td>
+                        <td>139.42 mmol/L</td>
+                        <td><span class="status status-normal">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td>钾</td>
+                        <td>5.72 mmol/L</td>
+                        <td><span class="status status-high">偏高</span></td>
+                    </tr>
+                    <tr>
+                        <td>钙</td>
+                        <td>2.07 mmol/L</td>
+                        <td><span class="status status-low">偏低</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 血常规卡片 -->
+            <div class="card full-width">
+                <h3>血常规</h3>
+                <table>
+                    <tr>
+                        <th>项目</th>
+                        <th>结果</th>
+                        <th>单位</th>
+                        <th>参考范围</th>
+                        <th>状态</th>
+                    </tr>
+                    <tr>
+                        <td>中性粒细胞数目</td>
+                        <td>3.02</td>
+                        <td>10^9/L</td>
+                        <td>2.0 - 7.0</td>
+                        <td><span class="status status-normal">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td>红细胞分布宽度-SD</td>
+                        <td>61.0</td>
+                        <td>fL</td>
+                        <td>35 - 56</td>
+                        <td><span class="status status-high">偏高</span></td>
+                    </tr>
+                    <tr>
+                        <td>血小板计数</td>
+                        <td>169</td>
+                        <td>10^9/L</td>
+                        <td>100 - 300</td>
+                        <td><span class="status status-normal">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td>白细胞数目</td>
+                        <td>4.04</td>
+                        <td>10^9/L</td>
+                        <td>4.0 - 10.0</td>
+                        <td><span class="status status-normal">正常</span></td>
+                    </tr>
+                    <tr>
+                        <td>红细胞压积</td>
+                        <td>35.1</td>
+                        <td>%</td>
+                        <td>37 - 47</td>
+                        <td><span class="status status-low">偏低</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 铁代谢指标 -->
+            <div class="card">
+                <h3>铁代谢指标</h3>
+                <div class="chart-container">
+                    <canvas id="ironChart"></canvas>
+                </div>
+                <table>
+                    <tr>
+                        <th>项目</th>
+                        <th>结果</th>
+                        <th>单位</th>
+                        <th>状态</th>
+                    </tr>
+                    <tr>
+                        <td>血清铁</td>
+                        <td>9</td>
+                        <td>umol/L</td>
+                        <td><span class="status status-low">偏低</span></td>
+                    </tr>
+                    <tr>
+                        <td>不饱和铁结合力</td>
+                        <td>28</td>
+                        <td>μmol/L</td>
+                        <td><span class="status status-low">偏低</span></td>
+                    </tr>
+                    <tr>
+                        <td>总铁结合力</td>
+                        <td>37</td>
+                        <td>μmol/L</td>
+                        <td><span class="status status-low">偏低</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 炎症指标 -->
+            <div class="card">
+                <h3>炎症指标</h3>
+                <table>
+                    <tr>
+                        <th>项目</th>
+                        <th>结果</th>
+                        <th>单位</th>
+                        <th>参考范围</th>
+                        <th>状态</th>
+                    </tr>
+                    <tr>
+                        <td>C反应蛋白</td>
+                        <td>2.33</td>
+                        <td>mg/L</td>
+                        <td>0–8 mg/L</td>
+                        <td><span class="status status-normal">正常</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- 总结与建议 -->
+            <div class="card full-width">
+                <h3>总结与建议</h3>
+                <div class="summary">
+                    <h4>关键问题：</h4>
+                    <ul>
+                        <li>患者存在<strong class="text-danger">肾功能异常</strong>表现，肌酐和尿酸均显著升高。</li>
+                        <li><strong class="text-danger">高血压控制不佳</strong>，收缩压偏高，需要进一步评估和调整抗高血压药物。</li>
+                        <li>血常规显示<strong class="text-warning">红细胞分布宽度增大及红细胞压积降低</strong>，提示可能存在贫血情况。</li>
+                        <li>电解质方面<strong class="text-warning">钙偏低、钾偏高</strong>，需要进行相应的补充或调整饮食。</li>
+                        <li><strong class="text-warning">铁代谢指标异常</strong>，显示缺铁状态，应考虑补充铁剂。</li>
+                    </ul>
+                    
+                    <h4>建议：</h4>
+                    <ul>
+                        <li>评估并优化透析方案，以改善肾功能指标</li>
+                        <li>重新评估抗高血压药物方案</li>
+                        <li>考虑补充铁剂以纠正缺铁状态</li>
+                        <li>调整饮食以控制高钾血症</li>
+                        <li>补充钙剂以改善低钙血症</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 透析效果图表
+        const dialysisCtx = document.getElementById('dialysisChart').getContext('2d');
+        const dialysisChart = new Chart(dialysisCtx, {
+            type: 'bar',
+            data: {
+                labels: ['透析前BUN', '透析后BUN', 'KT/V', 'URR (%)'],
+                datasets: [{
+                    label: '当前值',
+                    data: [28.7, 6.7, 1.77, 76.66],
+                    backgroundColor: [
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(40, 167, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(40, 167, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // 血压图表
+        const bpCtx = document.getElementById('bpChart').getContext('2d');
+        const bpChart = new Chart(bpCtx, {
+            type: 'bar',
+            data: {
+                labels: ['收缩压', '舒张压', '血流量'],
+                datasets: [{
+                    label: '当前值',
+                    data: [163, 104, 220],
+                    backgroundColor: [
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(40, 167, 69, 0.7)',
+                        'rgba(40, 167, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(40, 167, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // 肾功能指标图表
+        const kidneyCtx = document.getElementById('kidneyChart').getContext('2d');
+        const kidneyChart = new Chart(kidneyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['肌酐 (umol/L)', '尿酸 (umol/L)'],
+                datasets: [{
+                    label: '当前值',
+                    data: [233.22, 396.72],
+                    backgroundColor: [
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(220, 53, 69, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }, {
+                    label: '正常上限',
+                    data: [80, 340],
+                    backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 1,
+                    type: 'line'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // 电解质图表
+        const electrolyteCtx = document.getElementById('electrolyteChart').getContext('2d');
+        const electrolyteChart = new Chart(electrolyteCtx, {
+            type: 'radar',
+            data: {
+                labels: ['钠', '钾', '钙'],
+                datasets: [{
+                    label: '当前值',
+                    data: [139.42, 5.72, 2.07],
+                    backgroundColor: 'rgba(74, 111, 165, 0.2)',
+                    borderColor: 'rgba(74, 111, 165, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(74, 111, 165, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+
+        // 铁代谢指标图表
+        const ironCtx = document.getElementById('ironChart').getContext('2d');
+        const ironChart = new Chart(ironCtx, {
+            type: 'radar',
+            data: {
+                labels: ['血清铁', '不饱和铁结合力', '总铁结合力'],
+                datasets: [{
+                    label: '当前值',
+                    data: [9, 28, 37],
+                    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                    borderColor: 'rgba(255, 193, 7, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(255, 193, 7, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
