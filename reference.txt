@@ -1,0 +1,22 @@
+透析物联网大屏
+http://ikuai.m-iot.tech:58123/dashboard-xinan/home
+
+中央监控大屏
+https://ihemodialysis.com/#/dapingView?clientCode=CLIENT9195181802236kHJF
+
+透析不良反应预警系统
+http://ikuai.m-iot.tech:58123/dashboard-unknown/0?kiosk
+
+岱特透析管理系统
+http://test.ihemodialysis.com
+
+透析患者健康助手
+https://dialysis-game-b7156934a697.herokuapp.com
+
+for ikuai
+username=="dtuser"
+password=="Dtuse1r"
+
+for ihemodialysis
+username=="suntop_ray"
+password=="123456"
