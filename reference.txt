@@ -1,5 +1,5 @@
 透析物联网大屏
-http://ikuai.m-iot.tech:58123/dashboard-xinan/home
+http://ikuai.m-iot.tech:58123/dashboard-xinan/home?kiosk
 
 中央监控大屏
 https://ihemodialysis.com/#/dapingView?clientCode=CLIENT9195181802236kHJF
